@@ -1,0 +1,5 @@
+*tfstate*
+.terraform/
+*credentials*
+certs/*
+.DS_Store
