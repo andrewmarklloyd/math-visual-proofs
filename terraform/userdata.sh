@@ -31,3 +31,5 @@ mkdir -p /home/${USERNAME}/.docker/cli-plugins/
 curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 -o /home/${USERNAME}/.docker/cli-plugins/docker-compose
 chmod +x /home/${USERNAME}/.docker/cli-plugins/docker-compose
 chown --recursive "${USERNAME}":"${USERNAME}" "${home_directory}/.docker"
+
+docker pull manimcommunity/manim:stable
