@@ -15,4 +15,5 @@ fi
 ip=$(terraform output -raw ip_address)
 cd ${SCRIPT_DIR}/../
 make build
+check_ssh ${ip}
 scp bin/math-visual-proofs-server root@${ip}:
