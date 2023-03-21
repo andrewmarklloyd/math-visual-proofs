@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -16,6 +18,10 @@ import (
 var logger *zap.SugaredLogger
 
 var messageClient mqtt.MqttClient
+
+type RenderMessage struct {
+	FileName string `json:"fileName"`
+}
 
 func main() {
 	l, err := zap.NewProduction()
@@ -47,10 +53,31 @@ func main() {
 
 	messageClient.Subscribe("math-visual-proofs/render/start", func(message string) {
 		fmt.Println(message)
+		renderMessage := RenderMessage{}
+		err := json.Unmarshal([]byte(message), &renderMessage)
+		if err != nil {
+			logger.Errorf("unmarshalling render message: %w", err)
+		}
+		err = render(renderMessage)
+		if err != nil {
+			logger.Errorf("error rendering: %s", err.Error())
+		}
 	})
 
 	for {
 		time.Sleep(time.Hour)
 	}
+}
 
+func render(renderMessage RenderMessage) error {
+	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "$(pwd)":/manim manimcommunity/manim:stable manim %s -qm`, renderMessage.FileName)
+	cmd := exec.Command("bash", "-c", c)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(out))
+		return err
+	}
+	fmt.Println(string(out))
+
+	return nil
 }
