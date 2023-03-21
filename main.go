@@ -69,7 +69,7 @@ func main() {
 			return
 		}
 
-		logger.Infof("received request to render: ", renderMessage)
+		logger.Info("received request to render: ", renderMessage)
 
 		if os.Getenv("MOCK_MODE") != "" {
 			return
