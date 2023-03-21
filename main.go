@@ -79,6 +79,8 @@ func main() {
 		if err != nil {
 			handleError(err)
 		}
+
+		logger.Info("successfully rendered and uploaded: ", renderMessage)
 	})
 
 	for {

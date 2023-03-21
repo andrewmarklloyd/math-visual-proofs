@@ -9,7 +9,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.58
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.30.6
 	github.com/eclipse/paho.mqtt.golang v1.4.2
-	github.com/gofrs/uuid v4.4.0+incompatible
 	go.uber.org/zap v1.24.0
 )
 
