@@ -4,14 +4,15 @@ set -u
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-source ./setup.sh
+source ${SCRIPT_DIR}/setup.sh
 cd ${SCRIPT_DIR}/../terraform
 terraform apply
 if [[ $? != 0 ]]; then
   echo "terraform apply failed, not continuing"
-  exit
+  exit 1
 fi
 
 ip=$(terraform output -raw ip_address)
-cd ../
-echo ${ip} #| tee /tmp/hosts
+cd ${SCRIPT_DIR}/../
+make build
+scp bin/math-visual-proofs-server root@${ip}:
