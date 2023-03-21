@@ -13,6 +13,7 @@ import (
 	mqttC "github.com/eclipse/paho.mqtt.golang"
 
 	"github.com/andrewmarklloyd/math-visual-proofs/internal/pkg/aws"
+	"github.com/andrewmarklloyd/math-visual-proofs/internal/pkg/git"
 	"github.com/andrewmarklloyd/math-visual-proofs/pkg/mqtt"
 	"go.uber.org/zap"
 )
@@ -24,7 +25,8 @@ var messageClient mqtt.MqttClient
 var awsClient aws.Client
 
 const (
-	clientID = "math-visual-proofs-server"
+	clientID  = "math-visual-proofs-server"
+	clonePath = "/tmp/working"
 )
 
 func main() {
@@ -62,6 +64,11 @@ func main() {
 	}
 
 	messageClient.Subscribe(mqtt.RenderStartTopic, func(message string) {
+		err = messageClient.Publish(mqtt.RenderAckTopic, message)
+		if err != nil {
+			handleError(fmt.Errorf("publishing ack message '%s': %w", message, err))
+		}
+
 		renderMessage := mqtt.RenderMessage{}
 		err := json.Unmarshal([]byte(message), &renderMessage)
 		if err != nil {
@@ -78,6 +85,7 @@ func main() {
 		err = subscribeHandler(renderMessage)
 		if err != nil {
 			handleError(err)
+			return
 		}
 
 		logger.Info("successfully rendered and uploaded: ", renderMessage)
@@ -89,12 +97,24 @@ func main() {
 }
 
 func subscribeHandler(renderMessage mqtt.RenderMessage) error {
-	err := render(renderMessage)
+	defer os.RemoveAll(clonePath)
+
+	err := os.RemoveAll(clonePath)
+	if err != nil {
+		return fmt.Errorf("removing existing cloned repository: %s", err.Error())
+	}
+
+	err = git.Clone(renderMessage.RepoURL, clonePath)
+	if err != nil {
+		return fmt.Errorf("cloning repository: %s", err.Error())
+	}
+
+	err = render(renderMessage)
 	if err != nil {
 		return fmt.Errorf("error rendering: %s", err.Error())
 	}
 
-	path := fmt.Sprintf("/root/media/videos/%s/720p30/%s.mp4", renderMessage.ClassName, renderMessage.ClassName)
+	path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, renderMessage.ClassName, renderMessage.ClassName)
 	err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", renderMessage.ClassName))
 	if err != nil {
 		return fmt.Errorf("error uploading to s3: %w", err)
@@ -104,7 +124,7 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 }
 
 func render(renderMessage mqtt.RenderMessage) error {
-	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "$(pwd)":/manim manimcommunity/manim:stable manim %s -qm`, renderMessage.FileName)
+	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, renderMessage.FileName)
 	cmd := exec.Command("bash", "-c", c)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

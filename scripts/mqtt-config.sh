@@ -10,19 +10,21 @@ get_config() {
 post() {
   endpoint=${1}
   payload=${2}
-  curl -s -XPOST -u :${CLOUDMQTT_APIKEY} \
+  curl -XPOST -u :${CLOUDMQTT_APIKEY} \
     -d "${payload}" \
     -H "Content-Type:application/json" https://api.cloudmqtt.com/api/${endpoint}
 }
 
 create_agent_user() {
   post user "{\"username\": \"${CLOUDMQTT_MATH_PROOFS_AGENT_USER}\",\"password\": \"${CLOUDMQTT_MATH_PROOFS_AGENT_PASSWORD}\"}"
-  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_AGENT_USER}\",\"pattern\":\"math-visual-proofs/#\",\"read\":false,\"write\":true}"
+  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_AGENT_USER}\",\"pattern\":\"math-visual-proofs-server/#\",\"read\":false,\"write\":true}"
+  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_AGENT_USER}\",\"pattern\":\"math-visual-proofs-agent/#\",\"read\":true,\"write\":false}"
 }
 
 create_server_user() {
   post user "{\"username\": \"${CLOUDMQTT_MATH_PROOFS_SERVER_USER}\",\"password\": \"${CLOUDMQTT_MATH_PROOFS_SERVER_PASSWORD}\"}"
-  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_SERVER_USER}\",\"pattern\":\"math-visual-proofs/#\",\"read\":true,\"write\":false}"
+  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_SERVER_USER}\",\"pattern\":\"math-visual-proofs-server/#\",\"read\":true,\"write\":false}"
+  post acl "{\"type\":\"topic\",\"username\":\"${CLOUDMQTT_MATH_PROOFS_SERVER_USER}\",\"pattern\":\"math-visual-proofs-agent/#\",\"read\":false,\"write\":true}"
 }
 
 
