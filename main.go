@@ -69,9 +69,9 @@ func main() {
 			return
 		}
 
+		logger.Infof("received request to render: ", renderMessage)
+
 		if os.Getenv("MOCK_MODE") != "" {
-			fmt.Println(renderMessage)
-			time.Sleep(3 * time.Second)
 			return
 		}
 
