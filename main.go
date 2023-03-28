@@ -64,11 +64,6 @@ func main() {
 	}
 
 	messageClient.Subscribe(mqtt.RenderStartTopic, func(message string) {
-		err = messageClient.Publish(mqtt.RenderAckTopic, message)
-		if err != nil {
-			handleError(fmt.Errorf("publishing ack message '%s': %w", message, err))
-		}
-
 		renderMessage := mqtt.RenderMessage{}
 		err := json.Unmarshal([]byte(message), &renderMessage)
 		if err != nil {
@@ -89,6 +84,11 @@ func main() {
 		}
 
 		logger.Info("successfully rendered and uploaded: ", renderMessage)
+
+		err = messageClient.Publish(mqtt.RenderSuccessTopic, "successfully finished render, video is uploaded to storage")
+		if err != nil {
+			logger.Errorf("publishing success message: %w", err)
+		}
 	})
 
 	for {
@@ -106,7 +106,12 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 
 	err = git.Clone(renderMessage.RepoURL, clonePath)
 	if err != nil {
-		return fmt.Errorf("cloning repository: %s", err.Error())
+		return fmt.Errorf("cloning repository %s: %s", renderMessage.RepoURL, err.Error())
+	}
+
+	err = messageClient.Publish(mqtt.RenderAckTopic, "successfully cloned repo and started render")
+	if err != nil {
+		return fmt.Errorf("publishing ack message: %w", err)
 	}
 
 	err = render(renderMessage)
@@ -137,5 +142,8 @@ func render(renderMessage mqtt.RenderMessage) error {
 
 func handleError(err error) {
 	logger.Error(err)
-	// todo: provide user feedback
+	pubErr := messageClient.Publish(mqtt.RenderErrTopic, fmt.Sprintf("error during render: %s", err.Error()))
+	if err != nil {
+		logger.Errorf("Connection to MQTT server lost: %s", pubErr)
+	}
 }
