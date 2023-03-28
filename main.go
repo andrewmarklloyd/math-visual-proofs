@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -112,6 +113,10 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 	err = messageClient.Publish(mqtt.RenderAckTopic, "successfully cloned repo and started render")
 	if err != nil {
 		return fmt.Errorf("publishing ack message: %w", err)
+	}
+
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, renderMessage.FileName)); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("file %s not found, cannot render", renderMessage.FileName)
 	}
 
 	err = render(renderMessage)
