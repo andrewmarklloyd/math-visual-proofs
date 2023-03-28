@@ -133,8 +133,8 @@ func render(renderMessage mqtt.RenderMessage) error {
 	cmd := exec.Command("bash", "-c", c)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
-		return err
+		logger.Error(string(out))
+		return fmt.Errorf("%w, %s", err, string(out))
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func render(renderMessage mqtt.RenderMessage) error {
 func handleError(err error) {
 	logger.Error(err)
 	pubErr := messageClient.Publish(mqtt.RenderErrTopic, fmt.Sprintf("error during render: %s", err.Error()))
-	if err != nil {
-		logger.Errorf("Connection to MQTT server lost: %s", pubErr)
+	if pubErr != nil {
+		logger.Errorf("error publishing to renderErrTopic: %s", pubErr)
 	}
 }
