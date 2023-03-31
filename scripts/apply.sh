@@ -2,6 +2,8 @@
 
 set -u
 
+skipAnsible="${1:-}"
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source ${SCRIPT_DIR}/setup.sh
@@ -16,4 +18,13 @@ ip=$(terraform output -raw ip_address)
 cd ${SCRIPT_DIR}/../
 make build
 check_ssh ${ip}
-scp bin/math-visual-proofs-server root@${ip}:
+
+if [[ ! -z ${skipAnsible} && ${skipAnsible} == "skip-ansible" ]]; then
+  exit 0
+fi
+
+echo ${ip} | tee /tmp/hosts
+
+check_docker ${ip}
+
+ansible-playbook -i /tmp/hosts ansible/playbook.yaml

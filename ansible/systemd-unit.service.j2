@@ -1,0 +1,16 @@
+[Unit]
+Description=math-visual-proofs-server
+After=systemd-journald.service network.target
+Requires=systemd-journald.service
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/root/math-visual-proofs-server
+EnvironmentFile=/root/.server-env
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RestartSec=5

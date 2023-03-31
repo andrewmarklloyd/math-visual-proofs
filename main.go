@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	mqttC "github.com/eclipse/paho.mqtt.golang"
@@ -43,15 +42,11 @@ func main() {
 		logger.Fatal("error creating aws client: %s", err.Error())
 	}
 
-	user := os.Getenv("CLOUDMQTT_MATH_PROOFS_SERVER_USER")
-	pw := os.Getenv("CLOUDMQTT_MATH_PROOFS_SERVER_PASSWORD")
-	url := os.Getenv("CLOUDMQTT_URL")
+	mqttAddr := os.Getenv("CLOUDMQTT_SERVER_URL")
 
-	if user == "" || pw == "" || url == "" {
-		logger.Fatal("CLOUDMQTT_MATH_PROOFS_SERVER_USER CLOUDMQTT_MATH_PROOFS_SERVER_PASSWORD CLOUDMQTT_URL env vars must be set")
+	if mqttAddr == "" {
+		logger.Fatal("CLOUDMQTT_SERVER_URL env var must be set")
 	}
-
-	mqttAddr := fmt.Sprintf("mqtt://%s:%s@%s", user, pw, strings.Split(url, "@")[1])
 
 	messageClient = mqtt.NewMQTTClient(mqttAddr, clientID, func(client mqttC.Client) {
 		logger.Info("Connected to MQTT server")

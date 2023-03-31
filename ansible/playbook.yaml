@@ -1,0 +1,39 @@
+- name: Deploy Agents
+  hosts: all
+  become: true
+  remote_user: math-visual-proofs
+  vars:
+    CLOUDMQTT_SERVER_URL: "{{ lookup('ansible.builtin.env', 'CLOUDMQTT_SERVER_URL') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('ansible.builtin.env', 'AWS_SECRET_ACCESS_KEY') }}"
+    SPACES_URL: "{{ lookup('ansible.builtin.env', 'SPACES_URL') }}"
+    AWS_ACCESS_KEY_ID: "{{ lookup('ansible.builtin.env', 'AWS_ACCESS_KEY_ID') }}"
+    AWS_REGION: "{{ lookup('ansible.builtin.env', 'AWS_REGION') }}"
+  tasks:
+  - name: Copy server binary
+    ansible.builtin.copy:
+      src: ../bin/math-visual-proofs-server
+      dest: /root/math-visual-proofs-server
+      owner: root
+      group: root
+  - name: Copy agent systemd unit file
+    ansible.builtin.copy:
+      src: ./systemd-unit.service.j2
+      dest: /etc/systemd/system/math-visual-proofs-server.service
+      owner: root
+      group: root
+  - name: Write server env-file 
+    ansible.builtin.template:
+      src: ./env-file.tmpl
+      dest: /root/.server-env
+      owner: root
+      group: root
+      force: yes
+  - name: Restart agent systemd unit
+    become: true
+    systemd:
+      daemon_reload: yes
+      enabled: yes
+      force: yes
+      name: math-visual-proofs-server
+      state: restarted
+    # when:
