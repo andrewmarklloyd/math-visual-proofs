@@ -15,13 +15,13 @@
       dest: /root/math-visual-proofs-server
       owner: root
       group: root
-  - name: Copy agent systemd unit file
+  - name: Copy server systemd unit file
     ansible.builtin.copy:
       src: ./systemd-unit.service.j2
       dest: /etc/systemd/system/math-visual-proofs-server.service
       owner: root
       group: root
-  - name: Write server env-file 
+  - name: Write server env-file
     ansible.builtin.template:
       src: ./env-file.tmpl
       dest: /root/.server-env
@@ -36,4 +36,3 @@
       force: yes
       name: math-visual-proofs-server
       state: restarted
-    # when:
