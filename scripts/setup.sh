@@ -8,6 +8,7 @@ export TF_VAR_ssh_inbound_ip=$(curl -s ifconfig.me)
 eval $(echo "export AWS_SECRET_ACCESS_KEY=op://math-visual-proofs/do-spaces-keys/SPACES_AWS_SECRET_ACCESS_KEY
 export SPACES_URL=op://math-visual-proofs/do-spaces-keys/SPACES_URL
 export AWS_ACCESS_KEY_ID=op://math-visual-proofs/do-spaces-keys/SPACES_AWS_ACCESS_KEY_ID
+export AWS_REGION=op://math-visual-proofs/do-spaces-keys/SPACES_AWS_REGION
 export TF_VAR_do_token=op://math-visual-proofs/digital-ocean/token
 export CLOUDMQTT_SERVER_URL=op://math-visual-proofs/cloud-mqtt/CLOUDMQTT_SERVER_URL" | op inject)
 

@@ -13,6 +13,7 @@
     ansible.builtin.copy:
       src: ../bin/math-visual-proofs-server
       dest: /root/math-visual-proofs-server
+      mode: '0755'
       owner: root
       group: root
   - name: Copy server systemd unit file
