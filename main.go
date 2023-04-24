@@ -110,8 +110,8 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("publishing ack message: %w", err)
 	}
 
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, renderMessage.FileName)); errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("file %s not found, cannot render", renderMessage.FileName)
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, renderMessage.FileNames)); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("file %s not found, cannot render", renderMessage.FileNames)
 	}
 
 	err = render(renderMessage)
@@ -119,8 +119,8 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("error rendering: %s", err.Error())
 	}
 
-	path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, renderMessage.ClassName, renderMessage.ClassName)
-	err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", renderMessage.ClassName))
+	path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, "", "")
+	err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", ""))
 	if err != nil {
 		return fmt.Errorf("error uploading to s3: %w", err)
 	}
@@ -129,7 +129,7 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 }
 
 func render(renderMessage mqtt.RenderMessage) error {
-	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, renderMessage.FileName)
+	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, "")
 	cmd := exec.Command("bash", "-c", c)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
