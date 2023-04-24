@@ -111,11 +111,11 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("publishing ack message: %w", err)
 	}
 
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, renderMessage.FileNames)); errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("file %s not found, cannot render", renderMessage.FileNames)
-	}
-
 	for _, f := range renderMessage.FileNames {
+		if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, f)); errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("file %s not found, cannot render", renderMessage.FileNames)
+		}
+
 		err = render(f)
 		if err != nil {
 			return fmt.Errorf("error rendering: %s", err.Error())
