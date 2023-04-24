@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	mqttC "github.com/eclipse/paho.mqtt.golang"
@@ -114,22 +115,25 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("file %s not found, cannot render", renderMessage.FileNames)
 	}
 
-	err = render(renderMessage)
-	if err != nil {
-		return fmt.Errorf("error rendering: %s", err.Error())
-	}
+	for _, f := range renderMessage.FileNames {
+		err = render(f)
+		if err != nil {
+			return fmt.Errorf("error rendering: %s", err.Error())
+		}
 
-	path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, "", "")
-	err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", ""))
-	if err != nil {
-		return fmt.Errorf("error uploading to s3: %w", err)
+		name := strings.Trim(f, ".py")
+		path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, name, name)
+		err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", name))
+		if err != nil {
+			return fmt.Errorf("error uploading to s3: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func render(renderMessage mqtt.RenderMessage) error {
-	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, "")
+func render(fileName string) error {
+	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, fileName)
 	cmd := exec.Command("bash", "-c", c)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

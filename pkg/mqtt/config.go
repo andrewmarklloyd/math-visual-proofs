@@ -12,6 +12,6 @@ const (
 )
 
 type RenderMessage struct {
-	FileNames string `json:"fileNames"`
-	RepoURL   string `json:"repoURL"`
+	FileNames []string `json:"fileNames"`
+	RepoURL   string   `json:"repoURL"`
 }
