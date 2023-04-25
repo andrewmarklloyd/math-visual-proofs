@@ -1,6 +1,8 @@
 package mqtt
 
 import (
+	"encoding/json"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -48,6 +50,17 @@ func (c MqttClient) Subscribe(topic string, subscribeHandler fn) error {
 // TODO: solve for retained and qos to ensure durability
 func (c MqttClient) Publish(topic, message string) error {
 	token := c.client.Publish(topic, 1, false, message)
+	token.Wait()
+	return token.Error()
+}
+
+func (c MqttClient) PublishRenderFeedbackMessage(topic string, message RenderFeedbackMessage) error {
+	m, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	token := c.client.Publish(topic, 1, false, string(m))
 	token.Wait()
 	return token.Error()
 }

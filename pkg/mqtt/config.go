@@ -9,9 +9,20 @@ const (
 	RenderAckTopic     = "math-visual-proofs-agent/render/ack"
 	RenderErrTopic     = "math-visual-proofs-agent/render/error"
 	RenderSuccessTopic = "math-visual-proofs-agent/render/success"
+
+	StatusSucceess = "success"
+	StatusError    = "error"
+
+	UnknownRepoURL = "unknownRepoURL"
 )
 
 type RenderMessage struct {
 	FileNames []string `json:"fileNames"`
 	RepoURL   string   `json:"repoURL"`
+}
+
+type RenderFeedbackMessage struct {
+	RepoURL string `json:"repoURL"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

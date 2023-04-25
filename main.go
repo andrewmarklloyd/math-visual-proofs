@@ -64,7 +64,7 @@ func main() {
 		renderMessage := mqtt.RenderMessage{}
 		err := json.Unmarshal([]byte(message), &renderMessage)
 		if err != nil {
-			handleError(fmt.Errorf("unmarshalling render message: %w", err))
+			handleError(fmt.Errorf("unmarshalling render message: %w", err), mqtt.UnknownRepoURL)
 			return
 		}
 
@@ -76,13 +76,17 @@ func main() {
 
 		err = subscribeHandler(renderMessage)
 		if err != nil {
-			handleError(err)
+			handleError(err, renderMessage.RepoURL)
 			return
 		}
 
 		logger.Info("successfully rendered and uploaded: ", renderMessage)
 
-		err = messageClient.Publish(mqtt.RenderSuccessTopic, "successfully finished render, video is uploaded to storage")
+		err = messageClient.PublishRenderFeedbackMessage(mqtt.RenderSuccessTopic, mqtt.RenderFeedbackMessage{
+			Status:  mqtt.StatusSucceess,
+			RepoURL: renderMessage.RepoURL,
+			Message: "successfully finished render, video is uploaded to storage",
+		})
 		if err != nil {
 			logger.Errorf("publishing success message: %w", err)
 		}
@@ -106,7 +110,11 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("cloning repository %s: %s", renderMessage.RepoURL, err.Error())
 	}
 
-	err = messageClient.Publish(mqtt.RenderAckTopic, "successfully cloned repo and started render")
+	err = messageClient.PublishRenderFeedbackMessage(mqtt.RenderAckTopic, mqtt.RenderFeedbackMessage{
+		Status:  mqtt.StatusSucceess,
+		RepoURL: renderMessage.RepoURL,
+		Message: "successfully cloned repo and started render",
+	})
 	if err != nil {
 		return fmt.Errorf("publishing ack message: %w", err)
 	}
@@ -144,9 +152,13 @@ func render(fileName string) error {
 	return nil
 }
 
-func handleError(err error) {
+func handleError(err error, repoURL string) {
 	logger.Error(err)
-	pubErr := messageClient.Publish(mqtt.RenderErrTopic, fmt.Sprintf("error during render: %s", err.Error()))
+	pubErr := messageClient.PublishRenderFeedbackMessage(mqtt.RenderErrTopic, mqtt.RenderFeedbackMessage{
+		Status:  mqtt.StatusSucceess,
+		RepoURL: repoURL,
+		Message: fmt.Sprintf("error during render: %s", err.Error()),
+	})
 	if pubErr != nil {
 		logger.Errorf("error publishing to renderErrTopic: %s", pubErr)
 	}
