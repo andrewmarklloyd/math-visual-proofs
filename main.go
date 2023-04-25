@@ -64,7 +64,7 @@ func main() {
 		renderMessage := mqtt.RenderMessage{}
 		err := json.Unmarshal([]byte(message), &renderMessage)
 		if err != nil {
-			handleError(fmt.Errorf("unmarshalling render message: %w", err), mqtt.UnknownRepoURL)
+			handleError(fmt.Errorf("unmarshalling render message: %w", err), mqtt.UnknownRepoURL, mqtt.UnknownGithubSHA)
 			return
 		}
 
@@ -76,16 +76,17 @@ func main() {
 
 		err = subscribeHandler(renderMessage)
 		if err != nil {
-			handleError(err, renderMessage.RepoURL)
+			handleError(err, renderMessage.RepoURL, renderMessage.GithubSHA)
 			return
 		}
 
 		logger.Info("successfully rendered and uploaded: ", renderMessage)
 
 		err = messageClient.PublishRenderFeedbackMessage(mqtt.RenderSuccessTopic, mqtt.RenderFeedbackMessage{
-			Status:  mqtt.StatusSucceess,
-			RepoURL: renderMessage.RepoURL,
-			Message: "successfully finished render, video is uploaded to storage",
+			Status:    mqtt.StatusSucceess,
+			RepoURL:   renderMessage.RepoURL,
+			GithubSHA: renderMessage.GithubSHA,
+			Message:   "successfully finished render, video is uploaded to storage",
 		})
 		if err != nil {
 			logger.Errorf("publishing success message: %w", err)
@@ -111,9 +112,10 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 	}
 
 	err = messageClient.PublishRenderFeedbackMessage(mqtt.RenderAckTopic, mqtt.RenderFeedbackMessage{
-		Status:  mqtt.StatusSucceess,
-		RepoURL: renderMessage.RepoURL,
-		Message: "successfully cloned repo and started render",
+		Status:    mqtt.StatusSucceess,
+		RepoURL:   renderMessage.RepoURL,
+		GithubSHA: renderMessage.GithubSHA,
+		Message:   "successfully cloned repo and started render",
 	})
 	if err != nil {
 		return fmt.Errorf("publishing ack message: %w", err)
@@ -152,12 +154,13 @@ func render(fileName string) error {
 	return nil
 }
 
-func handleError(err error, repoURL string) {
+func handleError(err error, repoURL, githubSHA string) {
 	logger.Error(err)
 	pubErr := messageClient.PublishRenderFeedbackMessage(mqtt.RenderErrTopic, mqtt.RenderFeedbackMessage{
-		Status:  mqtt.StatusSucceess,
-		RepoURL: repoURL,
-		Message: fmt.Sprintf("error during render: %s", err.Error()),
+		Status:    mqtt.StatusSucceess,
+		RepoURL:   repoURL,
+		GithubSHA: githubSHA,
+		Message:   fmt.Sprintf("error during render: %s", err.Error()),
 	})
 	if pubErr != nil {
 		logger.Errorf("error publishing to renderErrTopic: %s", pubErr)
