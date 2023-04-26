@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -26,8 +25,8 @@ var messageClient mqtt.MqttClient
 var awsClient aws.Client
 
 const (
-	clientID  = "math-visual-proofs-server"
-	clonePath = "/tmp/working"
+	clientID      = "math-visual-proofs-server"
+	baseClonePath = "/tmp"
 )
 
 func main() {
@@ -60,20 +59,7 @@ func main() {
 		logger.Fatalf("connecting to mqtt: %s", err)
 	}
 
-	messageClient.Subscribe(mqtt.RenderStartTopic, func(message string) {
-		renderMessage := mqtt.RenderMessage{}
-		err := json.Unmarshal([]byte(message), &renderMessage)
-		if err != nil {
-			handleError(fmt.Errorf("unmarshalling render message: %w", err), mqtt.UnknownRepoURL, mqtt.UnknownGithubSHA)
-			return
-		}
-
-		logger.Info("received request to render: ", renderMessage)
-
-		if os.Getenv("MOCK_MODE") != "" {
-			return
-		}
-
+	messageClient.Subscribe(mqtt.RenderStartTopic, logger, func(renderMessage mqtt.RenderMessage) {
 		err = subscribeHandler(renderMessage)
 		if err != nil {
 			handleError(err, renderMessage.RepoURL, renderMessage.GithubSHA)
@@ -99,6 +85,7 @@ func main() {
 }
 
 func subscribeHandler(renderMessage mqtt.RenderMessage) error {
+	clonePath := fmt.Sprintf("%s/%s", baseClonePath, renderMessage.GithubSHA)
 	defer os.RemoveAll(clonePath)
 
 	err := os.RemoveAll(clonePath)
@@ -111,22 +98,12 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 		return fmt.Errorf("cloning repository %s: %s", renderMessage.RepoURL, err.Error())
 	}
 
-	err = messageClient.PublishRenderFeedbackMessage(mqtt.RenderAckTopic, mqtt.RenderFeedbackMessage{
-		Status:    mqtt.StatusSucceess,
-		RepoURL:   renderMessage.RepoURL,
-		GithubSHA: renderMessage.GithubSHA,
-		Message:   "successfully cloned repo and started render",
-	})
-	if err != nil {
-		return fmt.Errorf("publishing ack message: %w", err)
-	}
-
 	for _, f := range renderMessage.FileNames {
 		if _, err := os.Stat(fmt.Sprintf("%s/%s", clonePath, f)); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("file %s not found, cannot render", renderMessage.FileNames)
 		}
 
-		err = render(f)
+		err = render(f, clonePath)
 		if err != nil {
 			return fmt.Errorf("error rendering: %s", err.Error())
 		}
@@ -142,7 +119,7 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 	return nil
 }
 
-func render(fileName string) error {
+func render(fileName, clonePath string) error {
 	c := fmt.Sprintf(`docker run --rm --user="$(id -u):$(id -g)" -v "%s":/manim manimcommunity/manim:stable manim %s -qm --progress_bar none`, clonePath, fileName)
 	cmd := exec.Command("bash", "-c", c)
 	out, err := cmd.CombinedOutput()

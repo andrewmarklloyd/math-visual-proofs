@@ -2,11 +2,14 @@ package mqtt
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"go.uber.org/zap"
 )
 
-type fn func(string)
+type fn func(RenderMessage)
 
 type MqttClient struct {
 	client mqtt.Client
@@ -38,9 +41,40 @@ func (c MqttClient) Cleanup() {
 	c.client.Disconnect(250)
 }
 
-func (c MqttClient) Subscribe(topic string, subscribeHandler fn) error {
+func (c MqttClient) Subscribe(topic string, logger *zap.SugaredLogger, subscribeHandler fn) error {
 	if token := c.client.Subscribe(topic, 1, func(client mqtt.Client, msg mqtt.Message) {
-		subscribeHandler(string(msg.Payload()))
+		renderMessage := RenderMessage{}
+		err := json.Unmarshal(msg.Payload(), &renderMessage)
+		if err != nil {
+			pubErr := c.PublishRenderFeedbackMessage(RenderErrTopic, RenderFeedbackMessage{
+				Status:    StatusSucceess,
+				RepoURL:   UnknownRepoURL,
+				GithubSHA: UnknownGithubSHA,
+				Message:   fmt.Sprintf("error during render: %s", err.Error()),
+			})
+			if pubErr != nil {
+				logger.Errorf("error publishing to renderErrTopic: %s", pubErr)
+			}
+			return
+		}
+
+		logger.Info("received request to render: ", renderMessage)
+
+		if os.Getenv("MOCK_MODE") != "" {
+			return
+		}
+
+		err = c.PublishRenderFeedbackMessage(RenderAckTopic, RenderFeedbackMessage{
+			Status:    StatusSucceess,
+			RepoURL:   renderMessage.RepoURL,
+			GithubSHA: renderMessage.GithubSHA,
+			Message:   "successfully cloned repo and started render",
+		})
+		if err != nil {
+			logger.Errorf("error publishing to renderErrTopic: %s", err)
+		}
+		// wait group here?
+		subscribeHandler(renderMessage)
 	}); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
