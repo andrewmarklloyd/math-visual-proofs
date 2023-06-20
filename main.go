@@ -110,7 +110,14 @@ func subscribeHandler(renderMessage mqtt.RenderMessage) error {
 
 		name := strings.Trim(f, ".py")
 		path := fmt.Sprintf("%s/media/videos/%s/720p30/%s.mp4", clonePath, name, name)
-		err = awsClient.UploadFile(context.Background(), path, fmt.Sprintf("%s.mp4", name))
+		// TODO: get org and repo as args
+		tmpOrgRepoPath := strings.Replace(renderMessage.RepoURL, "https://github.com/", "", -1)
+		orgRepoPath := strings.Replace(tmpOrgRepoPath, ".git", "", -1)
+		key := fmt.Sprintf("%s/%s.mp4", orgRepoPath, name)
+		err = awsClient.UploadFile(context.Background(), path, key, map[string]string{
+			"x-amz-meta-sha":     renderMessage.GithubSHA,
+			"x-amz-meta-repourl": renderMessage.RepoURL,
+		})
 		if err != nil {
 			return fmt.Errorf("error uploading to s3: %w", err)
 		}

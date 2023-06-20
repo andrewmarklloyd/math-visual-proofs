@@ -40,7 +40,7 @@ func NewClient() (Client, error) {
 	}, nil
 }
 
-func (c *Client) UploadFile(ctx context.Context, localVideoPath, key string) error {
+func (c *Client) UploadFile(ctx context.Context, localVideoPath, key string, metadata map[string]string) error {
 	file, err := os.Open(localVideoPath)
 	if err != nil {
 		return fmt.Errorf("opening local video file: %s", err)
@@ -48,9 +48,10 @@ func (c *Client) UploadFile(ctx context.Context, localVideoPath, key string) err
 
 	uploader := manager.NewUploader(c.s3)
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
-		Bucket: aws.String("math-visual-proofs"),
-		Key:    aws.String(fmt.Sprintf("renderings/%s", key)),
-		Body:   file,
+		Bucket:   aws.String("math-visual-proofs"),
+		Key:      aws.String(fmt.Sprintf("renderings/%s", key)),
+		Body:     file,
+		Metadata: metadata,
 	})
 	if err != nil {
 		return fmt.Errorf("uploading video file to s3: %s", err)

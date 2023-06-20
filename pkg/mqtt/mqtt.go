@@ -74,7 +74,7 @@ func (c MqttClient) Subscribe(topic string, logger *zap.SugaredLogger, subscribe
 			logger.Errorf("error publishing to renderErrTopic: %s", err)
 		}
 		// wait group here?
-		subscribeHandler(renderMessage)
+		go subscribeHandler(renderMessage)
 	}); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
