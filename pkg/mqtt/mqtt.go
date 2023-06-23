@@ -73,7 +73,7 @@ func (c MqttClient) Subscribe(topic string, logger *zap.SugaredLogger, subscribe
 		if err != nil {
 			logger.Errorf("error publishing to renderErrTopic: %s", err)
 		}
-		// wait group here?
+		// TODO: unbounded goroutines will clobber the server. wait group here?
 		go subscribeHandler(renderMessage)
 	}); token.Wait() && token.Error() != nil {
 		return token.Error()
